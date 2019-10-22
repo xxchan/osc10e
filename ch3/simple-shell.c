@@ -37,11 +37,16 @@ int main(void)
 		
 	size_t size = MAX_LINE+1; 
 	ssize_t nread;
-	char *line = (char *)malloc(size * sizeof(char));
-	char *line_last = (char *)malloc(size * sizeof(char));
+	//char *line = (char *)malloc(sizeof(char)*size);
+	char *line = NULL;
+	//char *line_last =(char *)malloc(sizeof(char)*size);
+	char line_buffer[size];
+	char line_last[size];
 
 	int cnt = 0;
 	int cid;
+	int has_history = 0;
+	
     	while (should_run){   
 		cnt ++;
         	printf("osh(%d)>", cnt);
@@ -63,22 +68,42 @@ int main(void)
 		}
 		int len_args;
 		int wait_flag = 1;
-		int has_history = 0;
 		int status;
 
-		len_args = osh_split_line(line, args);
+		strcpy(line_buffer,line);
+		len_args = osh_split_line(line_buffer, args);
 		
 		/* empty input */
 		if(len_args == 0)
 			continue;
 		
 		/* exit */
-		if(strcmp(args[0], "exit") == 0)
+		else if(strcmp(args[0], "exit") == 0)
 		{
 			should_run = 0;
 			break;
 		}
 
+		/* history */
+		else if(strcmp(args[0], "!!") == 0)
+		{
+			if(!has_history)
+			{
+				printf("No commands in history.\n");
+				continue;
+			}
+			printf("%s", line_last);
+			strcpy(line_buffer, line_last);
+			len_args = osh_split_line(line_buffer, args);
+		}
+
+		/* normal command, save history */
+		else
+		{
+			strcpy(line_last, line);
+			has_history = 1;
+		}
+			
 		/* check '&' symbol */
 		if(strcmp(args[len_args-1], "&") == 0)
 		{
@@ -109,10 +134,9 @@ int main(void)
 				/* should fix */
 				continue;
 			cid = waitpid(pid, &status, WUNTRACED|WCONTINUED);
-			printf("Child process %d terminates (osh %d fork %d)\n", cid, cnt, pid);
+			printf("Child process %d terminates with status %d (osh %d fork %d)\n", cid, status, cnt, pid);
 		}
     	}
     	
-	free(line);
 	return 0;
 }
