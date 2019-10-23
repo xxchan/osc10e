@@ -5,6 +5,7 @@
  * Copyright John Wiley & Sons - 2018
  */
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -49,7 +50,8 @@ int main(void)
 	
     	while (should_run){   
 		cnt ++;
-        	printf("osh(%d)>", cnt);
+        	/* printf("osh(%d)>", cnt); */
+		printf("osh>");
         	fflush(stdout);
         
         	/**
@@ -69,6 +71,8 @@ int main(void)
 		int len_args;
 		int wait_flag = 1;
 		int status;
+		int filedesc;
+		int redirect = 0;
 
 		strcpy(line_buffer,line);
 		len_args = osh_split_line(line_buffer, args);
@@ -104,6 +108,25 @@ int main(void)
 			has_history = 1;
 		}
 			
+		/* check IO redirection*/
+		for(int i = 0 ; i < len_args; ++i)
+		{
+			if(strcmp(args[i], ">") == 0)
+			{
+				redirect = STDOUT_FILENO;
+				args[i] = NULL;
+				filedesc = open(args[i+1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+				break;
+			}
+			else if(strcmp(args[i], "<") == 0)
+			{
+				redirect = STDIN_FILENO;
+				args[i] = NULL;
+				filedesc = open(args[i+1], O_RDONLY); /* lack error handing */
+				break;
+			}
+		}
+
 		/* check '&' symbol */
 		if(strcmp(args[len_args-1], "&") == 0)
 		{
@@ -120,8 +143,9 @@ int main(void)
 		}
 		else if(pid == 0) /* child process */
 		{
-			printf("child process id %d\n", getpid());
+			/* printf("child process id %d\n", getpid()); */
 			fflush(stdout);
+			dup2(filedesc, redirect);
 			if(execvp(args[0], args) == -1)
 			{	
 				printf("%s: command not found\n", args[0]);
@@ -131,10 +155,15 @@ int main(void)
 		else /* parent process */
 		{
 			if(!wait_flag)
-				/* should fix */
+				/* should kill zombies */
 				continue;
 			cid = waitpid(pid, &status, WUNTRACED|WCONTINUED);
-			printf("Child process %d terminates with status %d (osh %d fork %d)\n", cid, status, cnt, pid);
+			if(redirect)
+				close(filedesc);
+			/*
+			 * printf("Child process %d terminates with status %d (osh %d fork %d)\n",\ 
+			 * cid, status, cnt, pid);
+			 */
 		}
     	}
     	
