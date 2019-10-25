@@ -11,7 +11,7 @@
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 #define BUFFER_SIZE 128
 #define PROC_NAME "pid"
@@ -28,6 +28,7 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf, size_t 
 static struct file_operations proc_ops = {
         .owner = THIS_MODULE,
         .read = proc_read,
+	.write = proc_write
 };
 
 /* This function is called when the module is loaded. */
@@ -64,15 +65,25 @@ static ssize_t proc_read(struct file *file, char __user *usr_buf, size_t count, 
         char buffer[BUFFER_SIZE];
         static int completed = 0;
         struct task_struct *tsk = NULL;
+	char comm[TASK_COMM_LEN];
 
         if (completed) {
                 completed = 0;
                 return 0;
         }
 
-        tsk = pid_task(find_vpid(l_pid), PIDTYPE_PID);
-
         completed = 1;
+
+        tsk = pid_task(find_vpid(l_pid), PIDTYPE_PID);
+	if (tsk == NULL)
+	{
+		rv = sprintf(buffer, "invalid pid %ld\n", l_pid);
+		copy_to_user(usr_buf, buffer, rv);
+		return rv;
+	}
+	
+	get_task_comm(comm, tsk);
+	rv = sprintf(buffer, "command = [%s] pid = [%d] state = [%ld]\n", comm, tsk->pid, tsk->state);
 
         // copies the contents of kernel buffer to userspace usr_buf 
         if (copy_to_user(usr_buf, buffer, rv)) {
@@ -90,7 +101,7 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf, size_t 
         char *k_mem;
 
         // allocate kernel memory
-        k_mem = kmalloc(count, GFP_KERNEL);
+        k_mem = kmalloc(count+1, GFP_KERNEL);
 
         /* copies user space usr_buf to kernel buffer */
         if (copy_from_user(k_mem, usr_buf, count)) {
@@ -104,7 +115,8 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf, size_t 
 	 * 
 	 * sscanf() must be used instead.
 	 */
-
+	k_mem[count] = '\0';
+	kstrtol(k_mem, 10, &l_pid);
         kfree(k_mem);
 
         return count;
@@ -115,6 +127,6 @@ module_init( proc_init );
 module_exit( proc_exit );
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Module");
-MODULE_AUTHOR("SGG");
+MODULE_DESCRIPTION("PID Module");
+MODULE_AUTHOR("XXCHAN");
 
