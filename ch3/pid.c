@@ -101,7 +101,7 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf, size_t 
         char *k_mem;
 
         // allocate kernel memory
-        k_mem = kmalloc(count+1, GFP_KERNEL);
+        k_mem = kmalloc(count, GFP_KERNEL);
 
         /* copies user space usr_buf to kernel buffer */
         if (copy_from_user(k_mem, usr_buf, count)) {
@@ -115,8 +115,7 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf, size_t 
 	 * 
 	 * sscanf() must be used instead.
 	 */
-	k_mem[count] = '\0';
-	kstrtol(k_mem, 10, &l_pid);
+        sscanf(k_mem, "%ld\n", &l_pid);
         kfree(k_mem);
 
         return count;
