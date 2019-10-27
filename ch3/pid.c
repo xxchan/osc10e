@@ -17,7 +17,7 @@
 #define PROC_NAME "pid"
 
 /* the current pid */
-static long l_pid;
+static long l_pid = 0;
 
 /**
  * Function prototypes
