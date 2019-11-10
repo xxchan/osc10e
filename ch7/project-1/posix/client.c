@@ -23,15 +23,22 @@ void add(void *param)
 int main(void)
 {
     // create some work to do
-    struct data work;
-    work.a = 5;
-    work.b = 10;
+    struct data works[30];
+    int i;
 
     // initialize the thread pool
     pool_init();
 
     // submit the work to the queue
-    pool_submit(&add,&work);
+    for(i = 0; i < 30; ++i)
+    {
+        if (i==15 || i == 27) 
+            sleep(1);
+        works[i].a = i;
+        works[i].b = 2*i;
+        if (pool_submit(&add,works+i) == 1)
+            printf("submit failure, i = %d\n", i);
+    }
 
     // may be helpful 
     //sleep(3);
