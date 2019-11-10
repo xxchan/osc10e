@@ -13,3 +13,5 @@ struct node {
 void insert(struct node **head, Task *task);
 void delete(struct node **head, Task *task);
 void traverse(struct node *head);
+void reverse(struct node **head);
+void sort(struct node **head, int (*cmp) (Task *, Task *));
