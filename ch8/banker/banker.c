@@ -17,7 +17,7 @@ int allocation[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
 /* the remaining need of each customer */
 int need[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
 
-int is_safe_state() {
+int check_safe_state() {
     int i, j, k, finish[NUMBER_OF_CUSTOMERS], work[NUMBER_OF_RESOURCES];
     for (i=0; i < NUMBER_OF_CUSTOMERS; ++i) {
         finish[i] = 0;
@@ -31,7 +31,7 @@ int is_safe_state() {
             if (finish[j] == 1)
                 continue;
             for (k=0; k < NUMBER_OF_RESOURCES; ++k) {
-                if (need[j][k] < work[k])
+                if (need[j][k] > work[k])
                     break;
             }
             if (k == NUMBER_OF_RESOURCES)
@@ -60,11 +60,14 @@ int request_resources(int customer_num, int request[]) {
         need[customer_num][i] -= request[i];
         available[i] -= request[i];
     }
-    ret = is_safe_state();
-    for (i = 0; i < NUMBER_OF_RESOURCES; ++i) {
-        allocation[customer_num][i] -= request[i];
-        need[customer_num][i] += request[i];
-        available[i] += request[i];
+    ret = check_safe_state();
+    /* restore state */
+    if (ret == -1) {
+        for (i = 0; i < NUMBER_OF_RESOURCES; ++i) {
+            allocation[customer_num][i] -= request[i];
+            need[customer_num][i] += request[i];
+            available[i] += request[i];
+        }
     }
     return ret;
 }
