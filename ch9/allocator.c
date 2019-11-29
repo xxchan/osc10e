@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         printf("allocator>");
         fflush(stdout);
         getline(&line, &line_size, stdin);
-        if (strcmp(line, "C") == 0)
+        if (strncmp(line, "C", 1) == 0)
         {
             compact();
         }
@@ -221,6 +221,7 @@ void compact()
             {
                 p->next->limit += offset;
                 p->next->base -= offset;
+                break;
             }
             else
             {
@@ -232,7 +233,7 @@ void compact()
         }
         else
         {
-            p->base -= offset;
+            p->next->base -= offset;
             p = p->next;
         }
     }
